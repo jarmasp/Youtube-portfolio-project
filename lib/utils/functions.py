@@ -21,29 +21,24 @@ nltk.download('punkt')
 from wordcloud import WordCloud
 
 
-def get_channels(youtube, channel_ids):
-    
+def get_channel_stats(youtube, channel_ids):
     """
     Get channel statistics: title, subscriber count, view count, video count, upload playlist
+    Params:
     
-    Params: 
     youtube: the build object from googleapiclient.discovery
     channels_ids: list of channel IDs
     
     Returns:
-    A dataframe containing the channel statistics
+    Dataframe containing the channel statistics for all channels in the provided list: title, subscriber count, view count, video count, upload playlist
     
     """
-    
     all_data = []
-    
     request = youtube.channels().list(
-        part="snippet,contentDetails,statistics",
-        id=','.join(channel_ids)
-    )
-    response = request.execute()
+                part='snippet,contentDetails,statistics',
+                id=','.join(channel_ids))
+    response = request.execute() 
     
-    #loop through items
     for i in range(len(response['items'])):
         data = dict(channelName = response['items'][i]['snippet']['title'],
                     subscribers = response['items'][i]['statistics']['subscriberCount'],
@@ -51,21 +46,19 @@ def get_channels(youtube, channel_ids):
                     totalVideos = response['items'][i]['statistics']['videoCount'],
                     playlistId = response['items'][i]['contentDetails']['relatedPlaylists']['uploads'])
         all_data.append(data)
-        
-    return(pd.DataFrame(all_data))
-
+    
+    return pd.DataFrame(all_data)
 
 def get_video_ids(youtube, playlist_id):
-    
     """
-    Get list of video IDs of all videos in the playlist
-    
+    Get list of video IDs of all videos in the given playlist
     Params:
+    
     youtube: the build object from googleapiclient.discovery
     playlist_id: playlist ID of the channel
     
     Returns:
-    List of video IDs
+    List of video IDs of all videos in the playlist
     
     """
     
@@ -101,21 +94,21 @@ def get_video_ids(youtube, playlist_id):
         
     return video_ids
 
-
 def get_video_details(youtube, video_ids):
-    
     """
-    Get video statistics of every video
-    
+    Get video statistics of all videos with given IDs
     Params:
+    
     youtube: the build object from googleapiclient.discovery
     video_ids: list of video IDs
     
     Returns:
-    Dataframe with statistics of videos
-    
+    Dataframe with statistics of videos, i.e.:
+        'channelTitle', 'title', 'description', 'tags', 'publishedAt'
+        'viewCount', 'likeCount', 'favoriteCount', 'commentCount'
+        'duration', 'definition', 'caption'
     """
-    
+        
     all_video_info = []
     
     for i in range(0, len(video_ids), 50):
@@ -141,8 +134,9 @@ def get_video_details(youtube, video_ids):
                         video_info[v] = None
 
             all_video_info.append(video_info)
-            
-def get_comments(youtube, video_ids):
+
+
+def get_comments_in_videos(youtube, video_ids):
     """
     Get top level comments as text from all videos with given IDs (only the first 10 comments due to quote limit of Youtube API)
     Params:
@@ -163,8 +157,7 @@ def get_comments(youtube, video_ids):
                 videoId=video_id
             )
             response = request.execute()
-            
-            #to not exceed the API limit, the number of comments was limited to the top ten
+        
             comments_in_video = [comment['snippet']['topLevelComment']['snippet']['textOriginal'] for comment in response['items'][0:10]]
             comments_in_video_info = {'video_id': video_id, 'comments': comments_in_video}
 
@@ -174,4 +167,4 @@ def get_comments(youtube, video_ids):
             # When error occurs - most likely because comments are disabled on a video
             print('Could not get comments for video ' + video_id)
         
-    return pd.DataFrame(all_comments)
+    return pd.DataFrame(all_comments)     
